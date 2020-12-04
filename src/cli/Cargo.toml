@@ -1,0 +1,13 @@
+[package]
+name = "preen_cli"
+description = "link checker cli tool"
+version = "0.0.1"
+authors = ["EthanJustice <47954690+EthanJustice@users.noreply.github.com>"]
+edition = "2018"
+readme = "README.md"
+homepage = "https://github.com/EthanJustice/preen"
+repository = "https://github.com/EthanJustice/preen"
+license = "MIT"
+publish = false
+
+[dependencies]
