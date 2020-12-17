@@ -1,3 +1,7 @@
+pub fn check(url: &str) -> Result<(), ()> {
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
