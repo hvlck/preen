@@ -1,4 +1,4 @@
-package main
+package preen
 
 import (
 	"fmt"
@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-func read(dir string) []string {
+// Read utility function to get all files in a directory
+func Read(dir string) []string {
 	file, err := os.Open(dir)
 	if err != nil {
 		log.Fatalf("failed to read directory: %s\n", err)
@@ -25,12 +26,13 @@ func read(dir string) []string {
 	return files
 }
 
-func find(contents string) []string {
+// Find finds all urls within a string
+func Find(contents string) []string {
 	return regexp.MustCompile("https?://([.]*.?)*/?").FindAllString(contents, -1)
 }
 
 func main() {
-	files := read(".")
+	files := Read(".")
 
 	for _, file := range files {
 		if strings.HasPrefix(file, ".") {
@@ -43,7 +45,7 @@ func main() {
 			log.Fatalf("failed to read file %s: %s", file, err)
 		}
 
-		matches := find(string(f))
+		matches := Find(string(f))
 
 		for _, match := range matches {
 			r, err := http.Get(match)
