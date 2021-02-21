@@ -2,10 +2,6 @@
 
 link checker
 
-## Roadmap
+https://pkg.go.dev/regexp#Regexp.FindAllString
 
-+ [ ] Core library
-  + [ ] Functionality
-+ [ ] CLI
-+ [ ] File scanning
-+ [ ] Parallelisation
+https://bit.ly
