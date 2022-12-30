@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/cheynewallace/tabby"
 )
 
 // Read utility function to get all files in a directory
@@ -32,23 +34,40 @@ func Find(contents string) []string {
 	return regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`).FindAllString(contents, -1)
 }
 
+func createFail(url string, status int) *BadLink {
+	return &BadLink{
+		Url:    url,
+		Status: status,
+	}
+}
+
+type BadLink struct {
+	Url      string
+	Status   int
+	Response string
+}
+
 func main() {
+	links := make(map[string][]*BadLink)
 	files := Read(".")
 
 	var fails uint32
 
 	for _, file := range files {
+		if stat, _ := os.Stat(file); stat.IsDir() {
+			continue
+		}
+
 		if strings.HasPrefix(file, ".") {
 			continue
 		}
 
-		fmt.Printf("checking file %s\n", file)
 		f, err := os.ReadFile(file)
 		if err != nil {
 			log.Fatalf("failed to read file %s: %s", file, err)
 		}
 
-		if utf8.Valid(f) == false {
+		if !utf8.Valid(f) {
 			fmt.Printf("%s is not valid utf-8, skipping...\n", file)
 			continue
 		}
@@ -56,7 +75,7 @@ func main() {
 		matches := Find(string(f))
 
 		for _, match := range matches {
-			if strings.HasSuffix(file, ".md") == true {
+			if strings.HasSuffix(file, ".md") {
 				match = strings.TrimSuffix(match, ")") // removes excess parantheses from markdown links
 			}
 			r, err := http.Get(match)
@@ -65,19 +84,33 @@ func main() {
 				log.Printf("failed to get %s: %s\n", match, err)
 			}
 
+			failure := createFail(match, r.StatusCode)
 			if r.StatusCode != 200 {
-				log.Printf("%s responded with something other than status 200\n", match)
+				failure.Response = r.Status
+				links[file] = append(links[file], failure)
 				fails++
 			} else if r.Request.URL.String() != match {
-				log.Printf("%s was redirected", match)
+				failure.Response = "redirected"
+				links[file] = append(links[file], failure)
 				fails++
-			} else {
-				fmt.Printf("successfully retrieved %s\n", match)
 			}
 		}
-
-		fmt.Printf("finished checking file %s\n", file)
 	}
 
-	fmt.Printf("finished checking all files, %v failed\n", fails)
+	if fails == 0 {
+		fmt.Printf("checked all files, no dead links found")
+	} else {
+		for name, file := range links {
+			table := tabby.New()
+			table.AddHeader("file", "url", "status", "code")
+			for _, link := range file {
+				table.AddLine(name, link.Url, link.Response, link.Status)
+			}
+
+			table.Print()
+			fmt.Println()
+		}
+
+		fmt.Printf("finished checking all files, %v failed\n", fails)
+	}
 }
